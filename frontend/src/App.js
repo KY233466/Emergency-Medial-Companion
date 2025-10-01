@@ -63,6 +63,10 @@ export default function App() {
   }, [isRecording])
 
   useEffect(() => {
+    axios.get(host + 'healthz').then(r => console.log('Is backend reached:', r.data));
+  }, []);
+
+  useEffect(() => {
     if (recordingBlob) {
       console.log('Sending audio blob to the server', recordingBlob);
       const reader = new FileReader();

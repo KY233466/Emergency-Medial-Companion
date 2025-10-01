@@ -14,9 +14,9 @@ load_dotenv()
 
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+socketio = SocketIO(app, cors_allowed_origins=["http://localhost:3000"], cors_credentials=False)
 app.config["SECRET_KEY"] = "secret!"
-socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Initialize Cerebras client
 cerebras_client = OpenAI(
@@ -29,11 +29,13 @@ DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 DEEPGRAM_URL_STT = "https://api.deepgram.com/v1/listen"
 DEEPGRAM_URL_TTS = "https://api.deepgram.com/v1/speak"
 
+@app.get("/healthz")
+def healthz():
+    return {"Yes": True}
 
 @app.route("/audio/<filename>")
 def serve_audio(filename):
     return send_from_directory("static/audio", filename)
-
 
 @socketio.on("audio_data")
 def handle_audio(data):
@@ -82,7 +84,7 @@ def handle_audio(data):
 
 def get_response(prompt):
     completion = cerebras_client.chat.completions.create(
-        model=os.getenv("CEREBRAS_MODEL", "llama-4-Scout"),
+        model="llama-4-scout-17b-16e-instruct",
         messages=[
             {
                 "role": "system",
@@ -156,4 +158,4 @@ def test_disconnect():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    socketio.run(app, host="127.0.0.1", port=5000, debug=True)
