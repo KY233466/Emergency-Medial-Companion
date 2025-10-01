@@ -1,9 +1,0 @@
-.env
-venv
-audio/*
-__pycache__
-# older
-
-
-*.mp3
-*.wav
