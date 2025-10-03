@@ -1,0 +1,62 @@
+[
+    {
+        "symptom": "chest pain",
+        "severity": "Critical",
+        "conditions": ["heart attack", "angina", "aortic dissection"],
+        "treatment": "Defibrillator, Nitroglycerin, Aspirin"
+    },
+    {
+        "symptom": "severe bleeding",
+        "severity": "Critical",
+        "conditions": ["trauma", "hemorrhage", "laceration"],
+        "treatment": "Blood transfusion, pressure dressing, tourniquet"
+    },
+    {
+        "symptom": "difficulty breathing",
+        "severity": "Critical",
+        "conditions": ["asthma attack", "pulmonary embolism", "pneumothorax"],
+        "treatment": "Oxygen therapy, bronchodilators, chest tube"
+    },
+    {
+        "symptom": "unconsciousness",
+        "severity": "Critical",
+        "conditions": ["seizure", "hypoglycemia", "head injury", "hypertension"],
+        "treatment": "Airway management, glucose administration, CT scan, antihypertensives"
+    },
+    {
+        "symptom": "sudden weakness",
+        "severity": "Critical",
+        "conditions": ["stroke", "transient ischemic attack"],
+        "treatment": "tPA (if ischemic stroke), rapid transport to stroke center"
+    },
+    {
+        "symptom": "broken bone",
+        "severity": "Moderate",
+        "conditions": ["fracture"],
+        "treatment": "Splint, pain relief, X-ray"
+    },
+    {
+        "symptom": "severe abdominal pain",
+        "severity": "Moderate",
+        "conditions": ["appendicitis", "kidney stones", "pancreatitis"],
+        "treatment": "Pain management, IV fluids, diagnostic imaging"
+    },
+    {
+        "symptom": "high fever",
+        "severity": "Moderate",
+        "conditions": ["infection", "sepsis"],
+        "treatment": "Antipyretics, antibiotics, blood cultures"
+    },
+    {
+        "symptom": "sprained ankle",
+        "severity": "Stable",
+        "conditions": ["sprain", "ligament tear"],
+        "treatment": "RICE (Rest, Ice, Compression, Elevation), brace"
+    },
+    {
+        "symptom": "allergic reaction",
+        "severity": "Moderate",
+        "conditions": ["anaphylaxis", "bee sting allergy", "allergic dermatitis"],
+        "treatment": "Epinephrine, antihistamines, corticosteroids"
+    }
+]

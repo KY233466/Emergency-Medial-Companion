@@ -9,6 +9,7 @@ import os
 import requests
 import json
 from datetime import datetime
+import re
 
 load_dotenv()
 
@@ -29,6 +30,10 @@ DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 DEEPGRAM_URL_STT = "https://api.deepgram.com/v1/listen"
 DEEPGRAM_URL_TTS = "https://api.deepgram.com/v1/speak"
 
+# Load medical knowledge base
+with open("medical_knowledge_base (1).json", "r", encoding="utf-8") as f:
+    medical_kb = json.load(f)
+
 @app.get("/healthz")
 def healthz():
     return {"Yes": True}
@@ -36,6 +41,205 @@ def healthz():
 @app.route("/audio/<filename>")
 def serve_audio(filename):
     return send_from_directory("static/audio", filename)
+
+def extract_patient_info(transcript):
+    """
+    使用正则表达式提取患者信息 (支持中英文)
+    """
+    info = {
+        "name": None,
+        "age": None,
+        "injury": None,
+        "pain_location": None,
+        "pain_level": None,
+        "allergies": None,
+        "symptoms": []
+    }
+
+    # 提取姓名: 我叫XXX / My name is XXX / I am XXX
+    name_patterns = [
+        r'我叫([A-Za-z\u4e00-\u9fa5]+)',
+        r'(?:my name is|I am|I\'m)\s+([A-Za-z]+)',
+    ]
+    for pattern in name_patterns:
+        name_match = re.search(pattern, transcript, re.IGNORECASE)
+        if name_match:
+            info["name"] = name_match.group(1)
+            break
+
+    # 提取年龄: XX岁 / XX years old / I am XX
+    age_patterns = [
+        r'(\d+)岁',
+        r'(\d+)\s+years?\s+old',
+        r'I am (\d+)',
+    ]
+    for pattern in age_patterns:
+        age_match = re.search(pattern, transcript, re.IGNORECASE)
+        if age_match:
+            info["age"] = int(age_match.group(1))
+            break
+
+    # 提取受伤原因/症状: 中文
+    injury_patterns_cn = [
+        r'从(.+?)摔下来',
+        r'被(.+?)(撞|打|咬)',
+        r'(摔|跌|撞)(?:倒|伤)',
+        r'因为(.+?)(晕倒|昏倒|昏迷)',
+        r'(高血压|低血压|糖尿病|心脏病)'
+    ]
+    for pattern in injury_patterns_cn:
+        injury_match = re.search(pattern, transcript)
+        if injury_match:
+            info["injury"] = injury_match.group(0)
+            break
+
+    # 提取受伤原因/症状: 英文
+    if not info["injury"]:
+        injury_patterns_en = [
+            r'(fell|fainted|collapsed|injured|hit|cut|burned|broke)',
+            r'because of\s+(.+?)(?:\.|,|$)',
+            r'(high blood pressure|low blood pressure|diabetes|heart attack|stroke)',
+        ]
+        for pattern in injury_patterns_en:
+            injury_match = re.search(pattern, transcript, re.IGNORECASE)
+            if injury_match:
+                info["injury"] = injury_match.group(0)
+                break
+
+    # 提取疼痛部位: 中文
+    pain_patterns_cn = [
+        r'([\u4e00-\u9fa5]+?)(很|特别|非常)?(痛|疼)',
+        r'(头|脚|手|腿|腰|背|胸|腹|肚子|脖子|颈|膝盖|脚踝|脚腕|手腕|肩膀|关节).*?(痛|疼)'
+    ]
+    for pattern in pain_patterns_cn:
+        pain_match = re.search(pattern, transcript)
+        if pain_match:
+            info["pain_location"] = pain_match.group(1)
+            break
+
+    # 提取疼痛部位: 英文
+    if not info["pain_location"]:
+        pain_patterns_en = [
+            r'(head|chest|stomach|abdomen|back|neck|shoulder|arm|leg|knee|ankle|wrist|foot|hand)\s+(?:pain|hurt|ache)',
+            r'pain in (?:my|the)\s+([a-z]+)',
+        ]
+        for pattern in pain_patterns_en:
+            pain_match = re.search(pattern, transcript, re.IGNORECASE)
+            if pain_match:
+                info["pain_location"] = pain_match.group(1)
+                break
+
+    # 提取疼痛等级: 疼痛等级是X / pain level X
+    pain_level_patterns = [
+        r'疼痛等级.*?(\d+)',
+        r'pain level.*?(\d+)',
+    ]
+    for pattern in pain_level_patterns:
+        pain_level_match = re.search(pattern, transcript, re.IGNORECASE)
+        if pain_level_match:
+            info["pain_level"] = int(pain_level_match.group(1))
+            break
+
+    # 提取过敏信息: 对XXX过敏 / allergic to XXX
+    allergy_patterns = [
+        r'对(.+?)过敏',
+        r'allergic to\s+([a-z\s]+)',
+    ]
+    for pattern in allergy_patterns:
+        allergy_match = re.search(pattern, transcript, re.IGNORECASE)
+        if allergy_match:
+            info["allergies"] = allergy_match.group(1).strip()
+            break
+
+    # 提取症状关键词
+    symptom_keywords = [
+        r'(晕倒|昏倒|昏迷|fainted|collapsed|unconscious)',
+        r'(高血压|low blood pressure|high blood pressure|hypertension)',
+        r'(呼吸困难|difficulty breathing|shortness of breath)',
+        r'(出血|bleeding)',
+        r'(骨折|broken bone|fracture)',
+    ]
+    for pattern in symptom_keywords:
+        if re.search(pattern, transcript, re.IGNORECASE):
+            info["symptoms"].append(re.search(pattern, transcript, re.IGNORECASE).group(0))
+
+    return info
+
+def search_medical_knowledge(patient_info):
+    """
+    在医疗知识库中搜索相关病症 (支持中英文)
+    """
+    results = []
+    search_text = ""
+
+    # 收集所有可能的症状信息
+    if patient_info.get("pain_location"):
+        search_text += " " + patient_info["pain_location"]
+    if patient_info.get("injury"):
+        search_text += " " + patient_info["injury"]
+    if patient_info.get("symptoms"):
+        search_text += " " + " ".join(patient_info["symptoms"])
+
+    search_text = search_text.lower()
+
+    # 症状关键词映射（中英文到知识库症状）
+    symptom_mapping = {
+        # 中文映射
+        "脚踝": "sprained ankle",
+        "脚腕": "sprained ankle",
+        "ankle": "sprained ankle",
+
+        "晕倒": "unconsciousness",
+        "昏倒": "unconsciousness",
+        "昏迷": "unconsciousness",
+        "fainted": "unconsciousness",
+        "collapsed": "unconsciousness",
+        "unconscious": "unconsciousness",
+
+        "高血压": "unconsciousness",  # 高血压可能导致昏迷
+        "hypertension": "unconsciousness",
+        "high blood pressure": "unconsciousness",
+
+        "胸": "chest pain",
+        "chest": "chest pain",
+
+        "呼吸困难": "difficulty breathing",
+        "difficulty breathing": "difficulty breathing",
+        "shortness of breath": "difficulty breathing",
+
+        "出血": "severe bleeding",
+        "bleeding": "severe bleeding",
+
+        "腹": "severe abdominal pain",
+        "stomach": "severe abdominal pain",
+        "abdomen": "severe abdominal pain",
+
+        "发烧": "high fever",
+        "fever": "high fever",
+
+        "骨折": "broken bone",
+        "broken": "broken bone",
+        "fracture": "broken bone",
+
+        "过敏": "allergic reaction",
+        "allergic": "allergic reaction",
+        "allergy": "allergic reaction"
+    }
+
+    # 查找匹配的症状
+    matched_symptoms = set()
+    for keyword, symptom_en in symptom_mapping.items():
+        if keyword.lower() in search_text:
+            matched_symptoms.add(symptom_en)
+
+    # 从知识库中查找匹配的条目
+    for symptom in matched_symptoms:
+        for entry in medical_kb:
+            if symptom.lower() == entry["symptom"].lower():
+                if entry not in results:  # 避免重复
+                    results.append(entry)
+
+    return results
 
 @socketio.on("audio_data")
 def handle_audio(data):
@@ -67,8 +271,44 @@ def handle_audio(data):
             print(f"Text: {transcript}")
             emit("transcription", {"text": transcript})
 
+            # 提取患者信息
+            patient_info = extract_patient_info(transcript)
+            print(f"提取的患者信息: {patient_info}")
+            emit("patient_info", patient_info)
+
+            # 搜索医疗知识库
+            knowledge_results = search_medical_knowledge(patient_info)
+            print(f"知识库搜索结果: {knowledge_results}")
+            if knowledge_results:
+                emit("knowledge_base_results", {"results": knowledge_results})
+
+            # Build enhanced prompt
+            enhanced_prompt = f"Patient Information: {transcript}\n\n"
+            if patient_info["name"]:
+                enhanced_prompt += f"Name: {patient_info['name']}\n"
+            if patient_info["age"]:
+                enhanced_prompt += f"Age: {patient_info['age']} years old\n"
+            if patient_info["injury"]:
+                enhanced_prompt += f"Injury/Condition: {patient_info['injury']}\n"
+            if patient_info["pain_location"]:
+                enhanced_prompt += f"Pain Location: {patient_info['pain_location']}\n"
+            if patient_info["pain_level"]:
+                enhanced_prompt += f"Pain Level: {patient_info['pain_level']}/10\n"
+            if patient_info["allergies"]:
+                enhanced_prompt += f"Allergies: {patient_info['allergies']}\n"
+
+            if knowledge_results:
+                enhanced_prompt += f"\nMedical Knowledge Base Match Results:\n"
+                for result in knowledge_results:
+                    enhanced_prompt += f"- Symptom: {result['symptom']}\n"
+                    enhanced_prompt += f"  Severity: {result['severity']}\n"
+                    enhanced_prompt += f"  Possible Conditions: {', '.join(result['conditions'])}\n"
+                    enhanced_prompt += f"  Recommended Treatment: {result['treatment']}\n"
+
+            enhanced_prompt += "\nPlease provide professional medical advice based on the above information."
+
             # Get response from Cerebras
-            llm_response = get_response(transcript)
+            llm_response = get_response(enhanced_prompt)
             emit("response", {"text": llm_response})
 
             # Generate audio using Deepgram TTS
@@ -83,19 +323,34 @@ def handle_audio(data):
 
 
 def get_response(prompt):
+    """
+    Generate medical advice using Cerebras API
+    """
+    system_prompt = """You are a professional medical assistant. Based on the provided patient information and medical knowledge base data, provide professional and accurate medical advice.
+
+Requirements:
+1. Provide recommendations based on patient symptoms and knowledge base matching results
+2. If patient has allergy information, you MUST avoid recommending related medications
+3. Give appropriate urgency recommendations based on symptom severity (Critical/Moderate/Stable)
+4. Keep it concise and professional, 3-5 sentences
+5. If the situation is Critical, recommend immediate medical attention or emergency services
+6. Respond in the same language as the patient's input (Chinese or English)"""
+
     completion = cerebras_client.chat.completions.create(
         model="llama-4-scout-17b-16e-instruct",
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant. Be extremely concise.",
+                "content": system_prompt,
             },
             {"role": "user", "content": prompt},
         ],
+        temperature=0.7,
+        max_tokens=500
     )
 
     response = completion.choices[0].message.content
-    print(response)
+    print(f"\nLLM Response: {response}\n")
 
     return response
 
@@ -158,4 +413,4 @@ def test_disconnect():
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="127.0.0.1", port=5000, debug=True)
+    socketio.run(app, host="127.0.0.1", port=5001, debug=True, allow_unsafe_werkzeug=True)
