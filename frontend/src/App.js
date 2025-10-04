@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import IconButton from '@mui/material/IconButton';
 import MicIcon from '@mui/icons-material/Mic';
@@ -20,7 +20,28 @@ export default function App() {
   } = useAudioRecorder();
   const [audioUrl, setAudioUrl] = useState('');
   const [audioKey, setAudioKey] = useState(Date.now()); // for updating the audio key
+  const [messages, setMessages] = useState([{"role": "bot", "text" : "Hi, I am a medical emergency companion. I am equipped with the medical of this person and ability to search the web for medial related knowledge. Please hit record to ask your question."}]);
 
+  // ONE shared audio element
+  const playerRef = useRef(new Audio());
+  const [playingId, setPlayingId] = useState(null);
+
+  const playAudio = (url, id = null) => {
+    const a = playerRef.current;
+    try {
+      a.pause();
+      a.src = url;
+      a.currentTime = 0;
+      a.play().then(() => {
+        if (id) setPlayingId(id);
+      }).catch(err => {
+        console.warn('Autoplay blocked or failed:', err);
+        // Optional: show a small UI hint asking the user to press play.
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const handleStopRecording = () => {
     stopRecording();
@@ -33,17 +54,23 @@ export default function App() {
 
     socket.on('transcription', (data) => {
       console.log('Transcription:', data.text);
+      setMessages(prev => [...prev, { id: `${data.req_id}:t`, role: 'user', text: data.text }]);
       // Optionally update the UI to show the transcription
     });
 
     socket.on('response', (data) => {
+      setMessages(prev => [...prev, { id: data.req_id, role: 'bot', text: data.text, audioUrl: null }]);
       console.log('Response Text:', data.text);
       // Optionally update the UI to show the response text
     });
 
     socket.on('audio_url', (data) => {
-      setAudioUrl(host + data.url)
-      setAudioKey(Date.now()); // Update the key to force refresh
+      const full = host + data.url;
+      setMessages(prev => prev.map(m => m.id === data.req_id ? { ...m, audioUrl: full } : m));
+      setAudioUrl(full);
+      setAudioKey(Date.now());
+      // AUTOPLAY right away
+      playAudio(full, data.req_id);
       console.log('Received audio URL:', host + data.url);
       // Handle playing the received audio URL here
     });
@@ -57,9 +84,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (isRecording) {
-      setAudioUrl('')
-    }
+    if (isRecording) setAudioUrl('')
   }, [isRecording])
 
   useEffect(() => {
@@ -93,7 +118,7 @@ export default function App() {
       <div style={{flex: "1 1 auto",
         minHeight: 0,
         overflow: "hidden"}}>
-        <History/>
+        <History messages={messages} onPlay={(url,id) => playAudio(url,id)} playingId={playingId} />
       </div>
       <div style={{flexShrink: 0,
         display: "flex",
@@ -116,7 +141,7 @@ export default function App() {
         >
           {isRecording ? <StopIcon sx={{ fontSize: '5rem' }} /> : <MicIcon sx={{ fontSize: '5rem' }} />}
         </IconButton>
-        {audioUrl && <audio key={audioKey} src={audioUrl} controls autoPlay />}
+        {/*{audioUrl && <audio key={audioKey} src={audioUrl} controls autoPlay />}*/}
       </div>
     </div>
   );

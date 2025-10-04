@@ -84,15 +84,12 @@ button:focus-visible {
     min-height: 0;           /* CRITICAL */
     overflow-y: auto;        /* the only scrolling region */
     padding: 16px;
-    /*overflow-y: auto;*/
-    /*padding: 20px 5vw 0;*/
-    /*display: flex;*/
-    /*flex-direction: column;*/
+    display: flex;
+    flex-direction: column;
 }
 
 .message {
     padding: 0 15px;
-    /* background: #333333; */
     background: #333da7;
     margin: 5px 0;
     border-radius: 15px;

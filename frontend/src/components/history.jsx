@@ -2,79 +2,22 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import './history.css';
 
-function History() {
-    const [messages, setMessages] = useState([{"sender": "bot", "text" : "Hi, I am a medical emergency companion. I am equipped with the medical of this person and ability to search the web for medial related knowledge. Please hit record to ask your question."}]);
-    const [input, setInput] = useState("");
+function History({messages, onPlay, playingId}) {
     const chatBoxRef = useRef(null);
+    const audioRef = useRef(new Audio());
+    const [currentId, setCurrentId] = useState(null);
     const inputContainerRef = useRef(null);
-
-    const sendMessage = async () => {
-        if (!input.trim()) return;
-        // hello!
-        // const formattedMessage = `${selectedSemesters.join(", ")}: ${input} `;
-        const formattedMessage = input;
-
-        const userMessage = { sender: "You", text: formattedMessage };
-        setMessages((prev) => [...prev, userMessage]);
-        setTimeout(() => setInput(""), 0);
-
-        try {
-            const response = await axios.post(
-                "http://127.0.0.1:5000/api/advising/query",
-                { query: input },
-                { timeout: 60000 },
-            );
-            let finalResponse = response.data.final_response;
-            if (!finalResponse || finalResponse.includes("An error occurred")) {
-                finalResponse =
-                    "An error occurred processing your query. Please try again.";
-            }
-            // Render only one bot message with the final combined response.
-            setMessages((prev) => [...prev, { sender: "Bot", text: finalResponse }]);
-        } catch (error) {
-            console.error("Error processing query:", error);
-            setMessages((prev) => [
-                ...prev,
-                { sender: "Bot", text: "Error processing query. Please try again." },
-            ]);
-        }
-    };
-
-    // Updated sendEmail that renders only the final combined response.
-    const sendEmail = async () => {
-        if (!input.trim()) return;
-
-        const userMessage = { sender: "You", text: input };
-        setMessages((prev) => [...prev, userMessage]);
-        setTimeout(() => setInput(""), 0);
-
-        try {
-            const response = await axios.post(
-                "http://127.0.0.1:5000/api/advising/batch",
-                { email: input },
-                { timeout: 60000 },
-            );
-            let finalResponse = response.data.final_response;
-            if (!finalResponse || finalResponse.includes("An error occurred")) {
-                finalResponse =
-                    "An error occurred processing your email. Please try again.";
-            }
-            // Render only one bot message with the final combined response.
-            setMessages((prev) => [...prev, { sender: "Bot", text: finalResponse }]);
-        } catch (error) {
-            console.error("Error processing email:", error);
-            setMessages((prev) => [
-                ...prev,
-                { sender: "Bot", text: "Error processing email. Please try again." },
-            ]);
-        }
-    };
 
     useEffect(() => {
         if (chatBoxRef.current) {
             chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
         }
     }, [messages]);
+
+    useEffect(() => {
+        const a = audioRef.current;
+        return () => { a.pause(); }; // stop audio on unmount
+    }, []);
 
     const [chatBoxHeight, setChatBoxHeight] = useState("100%");
     useEffect(() => {
@@ -91,22 +34,57 @@ function History() {
         };
     }, []);
 
+    const handlePlay = (msg) => {
+        if (!msg.audioUrl) return;
+        const a = audioRef.current;
+
+        // Toggle if clicking the same message that's already playing
+        if (currentId === msg.id && !a.paused) {
+            a.pause();
+            a.currentTime = 0;
+            setCurrentId(null);
+            return;
+        }
+
+        a.pause();
+        a.src = msg.audioUrl;
+        a.currentTime = 0;
+        a.play();
+        setCurrentId(msg.id);
+    };
+
     return (
         <div className="chat-container">
             <div
                 className="chat-box"
                 ref={chatBoxRef}
-                style={{ height: chatBoxHeight }}
+                style={{height: chatBoxHeight}}
             >
-                {messages.map((msg, index) => (
-                    <div
-                        key={index}
-                        className={`message ${msg.sender === "You" ? "user" : "bot"}`}
-                    >
-                        <div>{msg.text}</div>
-                    </div>
-                ))}
+                {messages.map((msg, i) => {
+                    const isUser = msg.role === 'user';
+                    const canPlay = !isUser && !!msg.audioUrl;
+                    const isPlaying = !isUser && playingId === msg.id;
+                    return (
+                        <div key={i} className={`message ${isUser ? 'user' : 'bot'}`}>
+                            <div className="bubble-row">
+                                <div className="bubble-text">{msg.text}</div>
+                                {canPlay && (
+                                    <button
+                                        className={`play-btn ${isPlaying ? 'playing' : ''}`}
+                                        onClick={() => onPlay(msg.audioUrl, msg.id)}
+                                        title={isPlaying ? 'Replaying…' : 'Play reply'}
+                                    >
+                                        ▶ Replay Audio
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
+
+            {/* hidden audio element */}
+            <audio ref={audioRef} style={{display: 'none'}}/>
         </div>
     );
 }

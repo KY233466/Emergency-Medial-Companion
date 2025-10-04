@@ -10,6 +10,7 @@ import requests
 import json
 from datetime import datetime
 import re
+import uuid
 
 load_dotenv()
 
@@ -244,6 +245,8 @@ def search_medical_knowledge(patient_info):
 @socketio.on("audio_data")
 def handle_audio(data):
     try:
+        sid = request.sid
+        req_id = str(uuid.uuid4())
         print(type(data))
 
         # Use Deepgram REST API for transcription
@@ -269,18 +272,18 @@ def handle_audio(data):
             result = response.json()
             transcript = result["results"]["channels"][0]["alternatives"][0]["transcript"]
             print(f"Text: {transcript}")
-            emit("transcription", {"text": transcript})
+            emit("transcription", {"text": transcript, "req_id": req_id}, to=sid)
 
             # 提取患者信息
             patient_info = extract_patient_info(transcript)
             print(f"提取的患者信息: {patient_info}")
-            emit("patient_info", patient_info)
+            emit("patient_info", {**patient_info, "req_id": req_id}, to=sid)
 
             # 搜索医疗知识库
             knowledge_results = search_medical_knowledge(patient_info)
             print(f"知识库搜索结果: {knowledge_results}")
             if knowledge_results:
-                emit("knowledge_base_results", {"results": knowledge_results})
+                emit("knowledge_base_results", {"results": knowledge_results, "req_id": req_id}, to=sid)
 
             # Build enhanced prompt
             enhanced_prompt = f"Patient Information: {transcript}\n\n"
@@ -309,12 +312,12 @@ def handle_audio(data):
 
             # Get response from Cerebras
             llm_response = get_response(enhanced_prompt)
-            emit("response", {"text": llm_response})
+            emit("response", {"text": llm_response, "req_id": req_id}, to=sid)
 
             # Generate audio using Deepgram TTS
             audio_filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".mp3"
             audio_url = synthesize_audio(llm_response, audio_filename)
-            emit("audio_url", {"url": audio_url})
+            emit("audio_url", {"url": audio_url, "req_id": req_id}, to=sid)
         else:
             print(f"Deepgram STT error: {response.status_code} - {response.text}")
 
@@ -413,4 +416,4 @@ def test_disconnect():
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="127.0.0.1", port=5001, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host="127.0.0.1", port=5000, debug=True, allow_unsafe_werkzeug=True)
