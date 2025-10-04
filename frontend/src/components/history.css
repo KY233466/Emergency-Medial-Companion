@@ -89,20 +89,29 @@ button:focus-visible {
 }
 
 .message {
-    padding: 0 15px;
     background: #333da7;
     margin: 5px 0;
     border-radius: 15px;
     max-width: 70%;
     width: fit-content;
     align-self: flex-end;
+    text-align: left;
     padding: 7px 15px;
+}
+
+.error {
+    color: #ff6b6b;                /* red text */
+    background: transparent !important;       /* avoid blue/gray fill behind red text */
+    border: 1px solid #ff6b6b;     /* subtle outline */
+}
+
+.message.error .bubble-text {
+    font-weight: 600;              /* a touch more emphasis */
 }
 
 .user {
     width: fit-content;
     background: #5b5b5b;
-    text-align: right;
     align-self: flex-end;
     padding: 7px 15px;
 }

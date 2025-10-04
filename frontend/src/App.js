@@ -80,6 +80,14 @@ export default function App() {
       // Optionally update the UI to show the transcription
     });
 
+    socket.on('no_transcription', (data) => {
+      const politeMsg = "No speech was detected in the recording. Please try again from a quieter location or move closer to the microphone.";
+      setMessages(prev => [
+        ...prev,
+        { id: `${data.req_id}:e`, role: 'user', type: 'error', text: politeMsg }
+      ]);
+    });
+
     socket.on('response', (data) => {
       setMessages(prev => [...prev, { id: data.req_id, role: 'bot', text: data.text, audioUrl: null }]);
       console.log('Response Text:', data.text);
@@ -100,6 +108,7 @@ export default function App() {
     return () => {
       socket.off('connect');
       socket.off('transcription');
+      socket.off('no_transcription');
       socket.off('response');
       socket.off('audio_url');
     };

@@ -271,8 +271,17 @@ def handle_audio(data):
         if response.status_code == 200:
             result = response.json()
             transcript = result["results"]["channels"][0]["alternatives"][0]["transcript"]
-            print(f"Text: {transcript}")
-            emit("transcription", {"text": transcript, "req_id": req_id}, to=sid)
+            print(f"Text: {transcript!r}")
+
+            if not transcript or not transcript.strip():
+                emit("no_transcription", {
+                    "req_id": req_id,
+                    # optional server message if you want:
+                    "message": "No speech was detected in the recording."
+                }, to=sid)
+                return
+            else:
+                emit("transcription", {"text": transcript, "req_id": req_id}, to=sid)
 
             # 提取患者信息
             patient_info = extract_patient_info(transcript)

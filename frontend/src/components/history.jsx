@@ -65,6 +65,8 @@ function History({ messages, onPlay, onPause, onResume, playingId, paused }) {
                     const isCurrent = !isUser && playingId === msg.id;
                     const isPlaying = isCurrent && !paused;
                     const canPlay = !isUser && !!msg.audioUrl;
+                    const classes = ['message', isUser ? 'user' : 'bot'];
+                    if (msg.type === 'error') classes.push('error');
 
                     const handleClick = () => {
                         if (!canPlay) return;
@@ -78,7 +80,7 @@ function History({ messages, onPlay, onPause, onResume, playingId, paused }) {
                     };
 
                     return (
-                        <div key={i} className={`message ${isUser ? 'user' : 'bot'}`}>
+                        <div key={i} className={classes.join(' ')}>
                             <div className="bubble-row">
                                 <div className="bubble-text">{msg.text}</div>
 
