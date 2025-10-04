@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import './history.css';
 
-function History({messages, onPlay, playingId}) {
+function History({ messages, onPlay, onPause, onResume, playingId, paused }) {
     const chatBoxRef = useRef(null);
     const audioRef = useRef(new Audio());
     const [currentId, setCurrentId] = useState(null);
@@ -62,19 +62,35 @@ function History({messages, onPlay, playingId}) {
             >
                 {messages.map((msg, i) => {
                     const isUser = msg.role === 'user';
+                    const isCurrent = !isUser && playingId === msg.id;
+                    const isPlaying = isCurrent && !paused;
                     const canPlay = !isUser && !!msg.audioUrl;
-                    const isPlaying = !isUser && playingId === msg.id;
+
+                    const handleClick = () => {
+                        if (!canPlay) return;
+                        if (isCurrent) {
+                            // toggle pause/resume
+                            if (isPlaying) onPause();
+                            else onResume();
+                        } else {
+                            onPlay(msg.audioUrl, msg.id);
+                        }
+                    };
+
                     return (
                         <div key={i} className={`message ${isUser ? 'user' : 'bot'}`}>
                             <div className="bubble-row">
                                 <div className="bubble-text">{msg.text}</div>
+
                                 {canPlay && (
+                                    // Toggle button
                                     <button
                                         className={`play-btn ${isPlaying ? 'playing' : ''}`}
-                                        onClick={() => onPlay(msg.audioUrl, msg.id)}
-                                        title={isPlaying ? 'Replaying…' : 'Play reply'}
+                                        onClick={handleClick}
+                                        title={isPlaying ? 'Pause' : (isCurrent && paused ? 'Resume' : 'Play')}
+                                        aria-label={isPlaying ? 'Pause' : (isCurrent && paused ? 'Resume' : 'Play')}
                                     >
-                                        ▶ Replay Audio
+                                        {isPlaying ? '⏸ Stop' : '▶ Replay'}
                                     </button>
                                 )}
                             </div>
@@ -82,7 +98,6 @@ function History({messages, onPlay, playingId}) {
                     );
                 })}
             </div>
-
             {/* hidden audio element */}
             <audio ref={audioRef} style={{display: 'none'}}/>
         </div>

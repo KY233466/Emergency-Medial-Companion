@@ -25,6 +25,23 @@ export default function App() {
   // ONE shared audio element
   const playerRef = useRef(new Audio());
   const [playingId, setPlayingId] = useState(null);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    const a = playerRef.current;
+    const onEnded = () => { setPlayingId(null); setPaused(false); };
+    const onPause = () => setPaused(true);
+    const onPlay = () => setPaused(false);
+
+    a.addEventListener('ended', onEnded);
+    a.addEventListener('pause', onPause);
+    a.addEventListener('play', onPlay);
+    return () => {
+      a.removeEventListener('ended', onEnded);
+      a.removeEventListener('pause', onPause);
+      a.removeEventListener('play', onPlay);
+    };
+  }, []);
 
   const playAudio = (url, id = null) => {
     const a = playerRef.current;
@@ -32,15 +49,20 @@ export default function App() {
       a.pause();
       a.src = url;
       a.currentTime = 0;
-      a.play().then(() => {
-        if (id) setPlayingId(id);
-      }).catch(err => {
-        console.warn('Autoplay blocked or failed:', err);
-        // Optional: show a small UI hint asking the user to press play.
-      });
-    } catch (e) {
-      console.error(e);
-    }
+      a.play()
+          .then(() => { if (id) setPlayingId(id); setPaused(false); })
+          .catch(err => console.warn('Autoplay blocked or failed:', err));
+    } catch (e) { console.error(e); }
+  };
+
+  const pauseAudio = () => {
+    const a = playerRef.current;
+    if (!a.paused) a.pause(); // `paused` will flip via event listener
+  };
+
+  const resumeAudio = () => {
+    const a = playerRef.current;
+    if (a.paused) a.play().catch(() => {});
   };
 
   const handleStopRecording = () => {
@@ -118,8 +140,14 @@ export default function App() {
       <div style={{flex: "1 1 auto",
         minHeight: 0,
         overflow: "hidden"}}>
-        <History messages={messages} onPlay={(url,id) => playAudio(url,id)} playingId={playingId} />
-      </div>
+        <History
+            messages={messages}
+            playingId={playingId}
+            paused={paused}
+            onPlay={(url,id)=>playAudio(url,id)}
+            onPause={pauseAudio}
+            onResume={resumeAudio}/>
+        </div>
       <div style={{flexShrink: 0,
         display: "flex",
         gap: "12px",
