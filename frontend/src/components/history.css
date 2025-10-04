@@ -5,7 +5,7 @@
 
     color-scheme: light dark;
     color: rgba(255, 255, 255, 0.87);
-    background-color: #242424;
+    background-color: white;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -89,14 +89,14 @@ button:focus-visible {
 }
 
 .message {
-    background: #333da7;
+    background: #013366;
     margin: 5px 0;
     border-radius: 15px;
     max-width: 70%;
     width: fit-content;
     align-self: flex-end;
     text-align: left;
-    padding: 7px 15px;
+    padding: 18px 15px;
 }
 
 .error {
@@ -111,13 +111,17 @@ button:focus-visible {
 
 .user {
     width: fit-content;
-    background: #5b5b5b;
+    background: #F3F4F6;
+    color: black;
+    border: 1px solid #EFF0F2;
     align-self: flex-end;
-    padding: 7px 15px;
+    padding: 10px 15px;
+    border-bottom-right-radius: 0;
 }
 
 .bot {
     align-self: flex-start;
+    border-bottom-left-radius: 0;
 }
 
 .input-container {

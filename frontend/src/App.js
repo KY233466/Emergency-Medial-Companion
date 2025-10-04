@@ -10,7 +10,6 @@ import History from "./components/history";
 const host = 'http://localhost:5000/'
 const socket = io(host)
 
-
 export default function App() {
   const {
     startRecording,
@@ -18,6 +17,7 @@ export default function App() {
     recordingBlob,
     isRecording
   } = useAudioRecorder();
+
   const [audioUrl, setAudioUrl] = useState('');
   const [audioKey, setAudioKey] = useState(Date.now()); // for updating the audio key
   const [messages, setMessages] = useState([{"role": "bot", "text" : "Hi, I am a medical emergency companion. I am equipped with the medical of this person and ability to search the web for medial related knowledge. Please hit record to ask your question."}]);
@@ -146,6 +146,15 @@ export default function App() {
         overflow: 'hidden',
       }}
     >
+      <div style={{
+        width: '100%',
+        backgroundColor: "#013366",
+        padding: '15px',
+        fontWeight: 'bold',
+        marginLeft: '30px',
+      }}>
+        Medical Emergency Companion
+      </div>
       <div style={{flex: "1 1 auto",
         minHeight: 0,
         overflow: "hidden"}}>
@@ -157,12 +166,14 @@ export default function App() {
             onPause={pauseAudio}
             onResume={resumeAudio}/>
         </div>
-      <div style={{flexShrink: 0,
+      <div style={{
+        width: '100%',
+        border: '1px solid #EFF0F2',
+        flexShrink: 0,
         display: "flex",
         gap: "12px",
         alignItems: "center",
         justifyContent: "center",
-        padding: "12px 0",
       }}>
         <IconButton
             sx={{
@@ -178,7 +189,6 @@ export default function App() {
         >
           {isRecording ? <StopIcon sx={{ fontSize: '5rem' }} /> : <MicIcon sx={{ fontSize: '5rem' }} />}
         </IconButton>
-        {/*{audioUrl && <audio key={audioKey} src={audioUrl} controls autoPlay />}*/}
       </div>
     </div>
   );
