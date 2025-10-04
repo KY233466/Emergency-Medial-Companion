@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import './history.css';
+import MedicalProfileCard from "./medicalProfile";
 
 function History({ messages, onPlay, onPause, onResume, playingId, paused }) {
     const chatBoxRef = useRef(null);
@@ -61,6 +62,9 @@ function History({ messages, onPlay, onPause, onResume, playingId, paused }) {
                 style={{height: chatBoxHeight}}
             >
                 {messages.map((msg, i) => {
+                    if (msg.role === "card") {
+                        return <MedicalProfileCard/>
+                    }
                     const isUser = msg.role === 'user';
                     const isCurrent = !isUser && playingId === msg.id;
                     const isPlaying = isCurrent && !paused;

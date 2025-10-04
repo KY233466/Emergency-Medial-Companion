@@ -83,7 +83,7 @@ button:focus-visible {
     flex: 1 1 auto;
     min-height: 0;           /* CRITICAL */
     overflow-y: auto;        /* the only scrolling region */
-    padding: 16px;
+    padding: 8px 10px;
     display: flex;
     flex-direction: column;
 }

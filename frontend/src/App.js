@@ -7,6 +7,8 @@ import { useAudioRecorder } from 'react-audio-voice-recorder';
 import { io } from "socket.io-client";
 import History from "./components/history";
 
+import "./App.css";
+
 const host = 'http://localhost:5000/'
 const socket = io(host)
 
@@ -18,9 +20,7 @@ export default function App() {
     isRecording
   } = useAudioRecorder();
 
-  const [audioUrl, setAudioUrl] = useState('');
-  const [audioKey, setAudioKey] = useState(Date.now()); // for updating the audio key
-  const [messages, setMessages] = useState([{"role": "bot", "text" : "Hi, I am a medical emergency companion. I am equipped with the medical of this person and ability to search the web for medial related knowledge. Please hit record to ask your question."}]);
+  const [messages, setMessages] = useState([{"role": "card"}, {"role": "bot", "text" : "Hi, I am a medical emergency companion. I am equipped with the medical of this person and ability to search the web for medial related knowledge. Please hit record to ask your question."}]);
 
   // ONE shared audio element
   const playerRef = useRef(new Audio());
@@ -97,8 +97,6 @@ export default function App() {
     socket.on('audio_url', (data) => {
       const full = host + data.url;
       setMessages(prev => prev.map(m => m.id === data.req_id ? { ...m, audioUrl: full } : m));
-      setAudioUrl(full);
-      setAudioKey(Date.now());
       // AUTOPLAY right away
       playAudio(full, data.req_id);
       console.log('Received audio URL:', host + data.url);
@@ -113,10 +111,6 @@ export default function App() {
       socket.off('audio_url');
     };
   }, []);
-
-  useEffect(() => {
-    if (isRecording) setAudioUrl('')
-  }, [isRecording])
 
   useEffect(() => {
     axios.get(host + 'healthz').then(r => console.log('Is backend reached:', r.data));
@@ -146,15 +140,6 @@ export default function App() {
         overflow: 'hidden',
       }}
     >
-      <div style={{
-        width: '100%',
-        backgroundColor: "#013366",
-        padding: '15px',
-        fontWeight: 'bold',
-        marginLeft: '30px',
-      }}>
-        Medical Emergency Companion
-      </div>
       <div style={{flex: "1 1 auto",
         minHeight: 0,
         overflow: "hidden"}}>

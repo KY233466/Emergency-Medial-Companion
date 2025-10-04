@@ -1,13 +1,69 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+html, body, #root, .App {
+  height: 100%;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+body {
+  min-height: 100vh;
+  /* mobile viewport bug fix */
+  min-height: -webkit-fill-available;
 }
+
+html {
+  height: -webkit-fill-available;
+}
+
+/*!* Make root stretchable *!*/
+/*#root { height: 100%; }*/
+
+/*!* App shell fills the *real* viewport height on mobile *!*/
+/*.app-shell {*/
+/*  height: 100vh;      !* fallback for older browsers *!*/
+/*  height: 100dvh;     !* modern dynamic viewport on mobile *!*/
+/*  height: var(--app-vh, 100dvh); !* JS-set fallback for quirky mobile browsers *!*/
+/*  display: flex;*/
+/*  flex-direction: column;*/
+/*  overflow: hidden;*/
+/*}*/
+
+/*!* Top bar & bottom bar respect notches/home indicator *!*/
+/*.topbar {*/
+/*  padding: calc(12px + env(safe-area-inset-top)) 16px 12px;*/
+/*}*/
+/*.bottombar {*/
+/*  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));*/
+/*  border-top: 1px solid #EFF0F2;*/
+/*  display: flex; gap: 12px; align-items: center; justify-content: center;*/
+/*}*/
+
+/*!* Middle area grows and owns the scroll *!*/
+/*.middle {*/
+/*  flex: 1 1 auto;*/
+/*  min-height: 0;           !* critical so children can shrink & scroll *!*/
+/*  overflow: hidden;*/
+/*}*/
+
+/*!* If you need an extra iOS fallback for older Safari *!*/
+/*@supports (-webkit-touch-callout: none) {*/
+/*  html, body, #root { height: -webkit-fill-available; }*/
+/*  .app-shell { height: -webkit-fill-available; }*/
+/*}*/
+
+/*html {*/
+/*  height: 100%;*/
+/*  margin: 0; !* Optional: Remove default body margins *!*/
+/*  padding: 0; !* Optional: Remove default body padding *!*/
+/*}*/
+
+/*!*body {*!*/
+/*!*  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',*!*/
+/*!*    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',*!*/
+/*!*    sans-serif;*!*/
+/*!*  -webkit-font-smoothing: antialiased;*!*/
+/*!*  -moz-osx-font-smoothing: grayscale;*!*/
+/*!*  overflow: hidden;*!*/
+/*!*}*!*/
+
+/*code {*/
+/*  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',*/
+/*    monospace;*/
+/*}*/
