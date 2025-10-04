@@ -5,6 +5,7 @@ import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
 import { useAudioRecorder } from 'react-audio-voice-recorder';
 import { io } from "socket.io-client";
+import History from "./components/history";
 
 const host = 'http://localhost:5000/'
 const socket = io(host)
@@ -23,7 +24,6 @@ export default function App() {
 
   const handleStopRecording = () => {
     stopRecording();
-
   };
 
   useEffect(() => {
@@ -85,23 +85,39 @@ export default function App() {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
+        flexDirection: 'column',
         height: '100vh',
+        overflow: 'hidden',
       }}
     >
-      <IconButton
-        sx={{
-          padding: '20px',
-          fontSize: '40px',
-          height: 'auto',
-          width: 'auto',
-        }}
-        color="primary"
-        onClick={isRecording ? handleStopRecording : startRecording}
-        aria-label={isRecording ? "Stop recording" : "Start recording"}
-      >
-        {isRecording ? <StopIcon sx={{ fontSize: '15rem' }} /> : <MicIcon sx={{ fontSize: '15rem' }} />}
-      </IconButton>
-      {audioUrl && <audio key={audioKey} src={audioUrl} controls autoPlay />}
+      <div style={{flex: "1 1 auto",
+        minHeight: 0,
+        overflow: "hidden"}}>
+        <History/>
+      </div>
+      <div style={{flexShrink: 0,
+        display: "flex",
+        gap: "12px",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "12px 0",
+      }}>
+        <IconButton
+            sx={{
+              margin: "10px",
+              padding: '10px',
+              fontSize: '40px',
+              height: 'auto',
+              width: 'auto',
+            }}
+            color="primary"
+            onClick={isRecording ? handleStopRecording : startRecording}
+            aria-label={isRecording ? "Stop recording" : "Start recording"}
+        >
+          {isRecording ? <StopIcon sx={{ fontSize: '5rem' }} /> : <MicIcon sx={{ fontSize: '5rem' }} />}
+        </IconButton>
+        {audioUrl && <audio key={audioKey} src={audioUrl} controls autoPlay />}
+      </div>
     </div>
   );
 }
