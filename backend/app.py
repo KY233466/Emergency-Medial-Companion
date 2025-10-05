@@ -21,6 +21,18 @@ CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://localh
 socketio = SocketIO(app, cors_allowed_origins=["http://localhost:3000", "http://localhost:3001"], cors_credentials=False)
 app.config["SECRET_KEY"] = "secret!"
 
+# Track connected clients by their origin port
+connected_clients = {
+    "3000": set(),  # User clients
+    "3001": set()   # Operator clients
+}
+
+def broadcast_to_operators(event_name, data, exclude_sid=None):
+    """Broadcast event to all operator clients (3001)"""
+    for operator_sid in connected_clients["3001"]:
+        if operator_sid != exclude_sid:
+            emit(event_name, data, to=operator_sid)
+
 # Initialize Cerebras client
 cerebras_client = OpenAI(
     api_key=os.getenv("CEREBRAS_API_KEY"),
@@ -383,7 +395,15 @@ def handle_audio(data):
                 }, to=sid)
                 return
             else:
+                # Detect client origin
+                origin = request.headers.get('Origin', 'http://localhost:3000')
+                is_user = '3001' not in origin
+
                 emit("transcription", {"text": transcript, "req_id": req_id}, to=sid)
+
+                # Broadcast to operators if this is from user (3000)
+                if is_user:
+                    broadcast_to_operators("transcription", {"text": transcript, "req_id": req_id})
 
             # 提取患者信息
             patient_info = extract_patient_info(transcript)
@@ -396,6 +416,8 @@ def handle_audio(data):
                 if db_patient:
                     print(f"数据库找到患者: {db_patient['name']}")
                     emit("database_patient_found", {**db_patient, "req_id": req_id}, to=sid)
+                    if is_user:
+                        broadcast_to_operators("database_patient_found", {**db_patient, "req_id": req_id})
                     # 如果数据库中有更完整的信息，更新patient_info
                     if not patient_info["age"] and db_patient["age"]:
                         patient_info["age"] = db_patient["age"]
@@ -408,18 +430,24 @@ def handle_audio(data):
                 if db_patient:
                     print(f"数据库找到默认患者: {db_patient['name']}")
                     emit("database_patient_found", {**db_patient, "req_id": req_id}, to=sid)
+                    if is_user:
+                        broadcast_to_operators("database_patient_found", {**db_patient, "req_id": req_id})
                     # 使用默认患者信息
                     patient_info["name"] = db_patient["name"]
                     patient_info["age"] = db_patient["age"]
                     patient_info["allergies"] = db_patient["allergies"]
 
             emit("patient_info", {**patient_info, "req_id": req_id}, to=sid)
+            if is_user:
+                broadcast_to_operators("patient_info", {**patient_info, "req_id": req_id})
 
             # 搜索医疗知识库
             knowledge_results = search_medical_knowledge(patient_info)
             print(f"知识库搜索结果: {knowledge_results}")
             if knowledge_results:
                 emit("knowledge_base_results", {"results": knowledge_results, "req_id": req_id}, to=sid)
+                if is_user:
+                    broadcast_to_operators("knowledge_base_results", {"results": knowledge_results, "req_id": req_id})
 
             # Build enhanced prompt
             enhanced_prompt = f"Patient Information: {transcript}\n\n"
@@ -486,11 +514,16 @@ def handle_audio(data):
                 print("User client detected (port 3000)")
                 llm_response = get_response(enhanced_prompt)
                 emit("response", {"text": llm_response, "req_id": req_id}, to=sid)
+                # Broadcast response to operators
+                broadcast_to_operators("response", {"text": llm_response, "req_id": req_id})
 
             # Generate audio using Deepgram TTS
             audio_filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".mp3"
             audio_url = synthesize_audio(llm_response, audio_filename)
             emit("audio_url", {"url": audio_url, "req_id": req_id}, to=sid)
+            # Broadcast audio URL to operators if from user
+            if not is_operator:
+                broadcast_to_operators("audio_url", {"url": audio_url, "req_id": req_id})
         else:
             print(f"Deepgram STT error: {response.status_code} - {response.text}")
 
@@ -650,12 +683,31 @@ def handle_tts_text(payload):
 
 @socketio.on("connect")
 def test_connect():
-    print("Client connected.")
+    sid = request.sid
+    origin = request.headers.get('Origin', 'http://localhost:3000')
+
+    if '3001' in origin:
+        connected_clients["3001"].add(sid)
+        print(f"Operator client connected: {sid}")
+    else:
+        connected_clients["3000"].add(sid)
+        print(f"User client connected: {sid}")
+
+    print(f"Total clients - Users: {len(connected_clients['3000'])}, Operators: {len(connected_clients['3001'])}")
 
 
 @socketio.on("disconnect")
 def test_disconnect():
-    print("Client disconnected.")
+    sid = request.sid
+
+    if sid in connected_clients["3000"]:
+        connected_clients["3000"].remove(sid)
+        print(f"User client disconnected: {sid}")
+    elif sid in connected_clients["3001"]:
+        connected_clients["3001"].remove(sid)
+        print(f"Operator client disconnected: {sid}")
+
+    print(f"Total clients - Users: {len(connected_clients['3000'])}, Operators: {len(connected_clients['3001'])}")
 
 
 if __name__ == "__main__":
