@@ -97,10 +97,34 @@ export default function App() {
       ]);
     });
 
+    socket.on('patient_info', (data) => {
+      console.log('Patient Info:', data);
+      setMessages(prev => [...prev, { id: `${data.req_id}:patient`, role: 'info', type: 'patient', data }]);
+    });
+
+    socket.on('database_patient_found', (data) => {
+      console.log('Database Patient Found:', data);
+      setMessages(prev => [...prev, { id: `${data.req_id}:db`, role: 'info', type: 'database', data }]);
+    });
+
+    socket.on('knowledge_base_results', (data) => {
+      console.log('Knowledge Base Results:', data);
+      setMessages(prev => [...prev, { id: `${data.req_id}:kb`, role: 'info', type: 'knowledge', data }]);
+    });
+
+    socket.on('hospital_resources', (data) => {
+      console.log('Hospital Resources:', data);
+      setMessages(prev => [...prev, { id: `${data.req_id}:hosp`, role: 'info', type: 'hospitals', data }]);
+    });
+
+    socket.on('operator_recommendation', (data) => {
+      setMessages(prev => [...prev, { id: data.req_id, role: 'bot', text: data.text, audioUrl: null }]);
+      console.log('Operator Recommendation:', data.text);
+    });
+
     socket.on('response', (data) => {
       setMessages(prev => [...prev, { id: data.req_id, role: 'bot', text: data.text, audioUrl: null }]);
       console.log('Response Text:', data.text);
-      // Optionally update the UI to show the response text
     });
 
     socket.on('audio_url', (data) => {
@@ -116,6 +140,11 @@ export default function App() {
       socket.off('connect');
       socket.off('transcription');
       socket.off('no_transcription');
+      socket.off('patient_info');
+      socket.off('database_patient_found');
+      socket.off('knowledge_base_results');
+      socket.off('hospital_resources');
+      socket.off('operator_recommendation');
       socket.off('response');
       socket.off('audio_url');
     };

@@ -78,6 +78,63 @@ def search_patient_database(name, age=None):
         print(f"Database search error: {str(e)}")
         return None
 
+def query_hospitals_with_resources(severity="Critical"):
+    """
+    Query all hospitals with their blood plasma and medication availability
+    Returns hospitals suitable for the patient's condition severity
+    """
+    try:
+        # Query hospitals
+        hosp_conn = sqlite3.connect('hospitals.db')
+        hosp_cursor = hosp_conn.cursor()
+        hosp_cursor.execute("SELECT id, name, address, latitude, longitude FROM hospitals")
+        hospitals = hosp_cursor.fetchall()
+        hosp_conn.close()
+
+        hospital_data = []
+        for hosp in hospitals:
+            hosp_id, name, address, lat, lon = hosp
+
+            # Query blood plasma for this hospital
+            blood_conn = sqlite3.connect('blood_plasma.db')
+            blood_cursor = blood_conn.cursor()
+            blood_cursor.execute(
+                "SELECT blood_type, volume, stock_quantity, expiration_date FROM blood_plasma WHERE hospital_id = ? AND stock_quantity > 0",
+                (hosp_id,)
+            )
+            blood_data = blood_cursor.fetchall()
+            blood_conn.close()
+
+            # Query medications for this hospital
+            med_conn = sqlite3.connect('medications.db')
+            med_cursor = med_conn.cursor()
+            med_cursor.execute(
+                "SELECT name, type, dosage, stock_quantity FROM medications WHERE hospital_id = ? AND stock_quantity > 0",
+                (hosp_id,)
+            )
+            med_data = med_cursor.fetchall()
+            med_conn.close()
+
+            hospital_data.append({
+                "id": hosp_id,
+                "name": name,
+                "address": address,
+                "coordinates": {"lat": lat, "lon": lon},
+                "blood_plasma": [
+                    {"type": b[0], "volume": b[1], "stock": b[2], "expiration": b[3]}
+                    for b in blood_data
+                ],
+                "medications": [
+                    {"name": m[0], "type": m[1], "dosage": m[2], "stock": m[3]}
+                    for m in med_data
+                ]
+            })
+
+        return hospital_data
+    except Exception as e:
+        print(f"Hospital query error: {str(e)}")
+        return []
+
 def extract_patient_info(transcript):
     """
     使用正则表达式提取患者信息 (支持中英文)
@@ -395,9 +452,40 @@ def handle_audio(data):
 
             enhanced_prompt += "\nPlease provide professional medical advice based on the above information."
 
-            # Get response from Cerebras
-            llm_response = get_response(enhanced_prompt)
-            emit("response", {"text": llm_response, "req_id": req_id}, to=sid)
+            # Detect client origin from request headers
+            origin = request.headers.get('Origin', 'http://localhost:3000')
+            is_operator = '3001' in origin
+
+            if is_operator:
+                # Operator frontend (3001): Query hospital resources and get detailed recommendation
+                print("Operator client detected (port 3001)")
+
+                # Query hospitals with blood and medication availability
+                severity = knowledge_results[0]['severity'] if knowledge_results else "Moderate"
+                hospital_data = query_hospitals_with_resources(severity)
+                emit("hospital_resources", {"hospitals": hospital_data, "req_id": req_id}, to=sid)
+
+                # Build operator-specific prompt with hospital data
+                operator_prompt = enhanced_prompt + "\n\nAvailable Hospital Resources:\n"
+                for hosp in hospital_data:
+                    operator_prompt += f"\n{hosp['name']} ({hosp['address']}):\n"
+                    operator_prompt += f"  Blood Plasma: {len(hosp['blood_plasma'])} types available\n"
+                    for plasma in hosp['blood_plasma'][:3]:  # Show first 3
+                        operator_prompt += f"    - {plasma['type']}: {plasma['stock']} units\n"
+                    operator_prompt += f"  Medications: {len(hosp['medications'])} available\n"
+                    for med in hosp['medications'][:3]:  # Show first 3
+                        operator_prompt += f"    - {med['name']} ({med['type']}): {med['stock']} units\n"
+
+                operator_prompt += "\nBased on the patient's condition, medical history, and available resources, recommend the best hospital and any resource preparations needed."
+
+                # Get operator-specific response
+                llm_response = get_operator_response(operator_prompt, hospital_data)
+                emit("operator_recommendation", {"text": llm_response, "req_id": req_id}, to=sid)
+            else:
+                # User frontend (3000): Standard response
+                print("User client detected (port 3000)")
+                llm_response = get_response(enhanced_prompt)
+                emit("response", {"text": llm_response, "req_id": req_id}, to=sid)
 
             # Generate audio using Deepgram TTS
             audio_filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".mp3"
@@ -441,6 +529,42 @@ HARD OUTPUT RULES (must be followed exactly):
 
     response = completion.choices[0].message.content
     print(f"\nLLM Response: {response}\n")
+
+    return response
+
+
+def get_operator_response(prompt, hospital_data):
+    """
+    Generate operator-specific recommendations including hospital selection
+    """
+    system_prompt = """You are an emergency medical dispatch coordinator. Based on patient information, medical knowledge, and available hospital resources, provide recommendations for:
+
+1. Which hospital to transport the patient to (consider blood plasma availability, medications, and severity)
+2. Whether additional blood plasma or medications need to be prepared or transferred
+3. Any special precautions based on patient allergies and medical history
+
+Requirements:
+- Prioritize hospitals with adequate blood plasma for the patient's condition
+- Consider medication availability, especially avoiding allergens
+- For Critical cases, recommend the nearest hospital with trauma capabilities
+- Be concise but thorough in your recommendation
+- Respond in the same language as the patient's input (Chinese or English)"""
+
+    completion = cerebras_client.chat.completions.create(
+        model="llama-4-scout-17b-16e-instruct",
+        messages=[
+            {
+                "role": "system",
+                "content": system_prompt,
+            },
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.7,
+        max_tokens=800
+    )
+
+    response = completion.choices[0].message.content
+    print(f"\nOperator LLM Response: {response}\n")
 
     return response
 
