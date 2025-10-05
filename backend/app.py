@@ -344,6 +344,17 @@ def handle_audio(data):
                         patient_info["age"] = db_patient["age"]
                     if not patient_info["allergies"] and db_patient["allergies"]:
                         patient_info["allergies"] = db_patient["allergies"]
+            else:
+                # 如果没有提取到姓名，使用默认患者 John Smith
+                print("未提取到患者姓名，使用默认患者: John Smith")
+                db_patient = search_patient_database("John Smith")
+                if db_patient:
+                    print(f"数据库找到默认患者: {db_patient['name']}")
+                    emit("database_patient_found", {**db_patient, "req_id": req_id}, to=sid)
+                    # 使用默认患者信息
+                    patient_info["name"] = db_patient["name"]
+                    patient_info["age"] = db_patient["age"]
+                    patient_info["allergies"] = db_patient["allergies"]
 
             emit("patient_info", {**patient_info, "req_id": req_id}, to=sid)
 
