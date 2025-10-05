@@ -1,0 +1,146 @@
+:root {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: light dark;
+    color: rgba(255, 255, 255, 0.87);
+    background-color: white;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+    font-weight: 500;
+    color: #646cff;
+    text-decoration: inherit;
+}
+
+a:hover {
+    color: #535bf2;
+}
+
+body {
+    margin: 0;
+    display: flex;
+    place-items: center;
+    min-width: 320px;
+    min-height: 100vh;
+}
+
+h1 {
+    font-size: 3.2em;
+    line-height: 1.1;
+}
+
+button {
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 0.6em 1.2em;
+    font-size: 1em;
+    font-weight: 500;
+    font-family: inherit;
+    background-color: #1a1a1a;
+    cursor: pointer;
+    transition: border-color 0.25s;
+}
+
+button:hover {
+    border-color: #646cff;
+}
+
+button:focus,
+button:focus-visible {
+    outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        color: #213547;
+        background-color: #ffffff;
+    }
+
+    a:hover {
+        color: #747bff;
+    }
+
+    button {
+        background-color: #f9f9f9;
+    }
+}
+
+.chat-container {
+    height: 100%;            /* fill .history-wrap */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.chat-box {
+    flex: 1 1 auto;
+    min-height: 0;           /* CRITICAL */
+    overflow-y: auto;        /* the only scrolling region */
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    background: #013366;
+    margin: 5px 0;
+    border-radius: 15px;
+    max-width: 70%;
+    width: fit-content;
+    align-self: flex-end;
+    text-align: left;
+    padding: 18px 15px;
+}
+
+.error {
+    color: #ff6b6b;                /* red text */
+    background: transparent !important;       /* avoid blue/gray fill behind red text */
+    border: 1px solid #ff6b6b;     /* subtle outline */
+}
+
+.message.error .bubble-text {
+    font-weight: 600;              /* a touch more emphasis */
+}
+
+.user {
+    width: fit-content;
+    background: #F3F4F6;
+    color: black;
+    border: 1px solid #EFF0F2;
+    align-self: flex-end;
+    padding: 10px 15px;
+    border-bottom-right-radius: 0;
+}
+
+.bot {
+    align-self: flex-start;
+    border-bottom-left-radius: 0;
+}
+
+.input-container {
+    margin: 5px 5vw;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+}
+
+input:focus {
+    outline: none !important;
+}
+
+button {
+    padding: 8px 15px;
+    margin-left: 5px;
+    background: #333da7;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
