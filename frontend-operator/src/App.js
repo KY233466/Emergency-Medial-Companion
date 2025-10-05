@@ -20,8 +20,7 @@ export default function App() {
     isRecording
   } = useAudioRecorder();
 
-  const [messages, setMessages] = useState(
-      []);
+  const [messages, setMessages] = useState([{role: "bot", text : "I have access to the databases of nearby hospital to help you decide which hospital to send the patient to. Please hit record to talk about patient symptoms."}]);
 
   // ONE shared audio element
   const playerRef = useRef(new Audio());
@@ -188,7 +187,6 @@ export default function App() {
             onPause={pauseAudio}
             onResume={resumeAudio}/>
         </div>
-      {/*
       <div style={{
         width: '100%',
         border: '1px solid #EFF0F2',
@@ -215,7 +213,7 @@ export default function App() {
         >
           {isRecording ? <StopIcon sx={{ fontSize: '5rem' }} /> : <MicIcon sx={{ fontSize: '5rem' }} />}
         </IconButton>
-      </div> */}
+      </div>
     </div>
   );
 }
