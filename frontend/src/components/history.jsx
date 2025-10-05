@@ -3,10 +3,9 @@ import axios from "axios";
 import './history.css';
 import MedicalProfileCard from "./medicalProfile";
 
-function History({ messages, onPlay, onPause, onResume, playingId, paused }) {
+function History({ messages, onPlay, onPause, onResume, playingId, paused, isFirstClick, setIsFirstClick }) {
     const chatBoxRef = useRef(null);
     const audioRef = useRef(new Audio());
-    const [currentId, setCurrentId] = useState(null);
     const inputContainerRef = useRef(null);
 
     useEffect(() => {
@@ -35,24 +34,27 @@ function History({ messages, onPlay, onPause, onResume, playingId, paused }) {
         };
     }, []);
 
-    const handlePlay = (msg) => {
-        if (!msg.audioUrl) return;
-        const a = audioRef.current;
-
-        // Toggle if clicking the same message that's already playing
-        if (currentId === msg.id && !a.paused) {
-            a.pause();
-            a.currentTime = 0;
-            setCurrentId(null);
-            return;
-        }
-
-        a.pause();
-        a.src = msg.audioUrl;
-        a.currentTime = 0;
-        a.play();
-        setCurrentId(msg.id);
-    };
+    const PlayAudioBtn = ({ isPlaying, isCurrent, paused, onToggle }) => (
+        <button
+            className={`play-btn ${isPlaying ? 'playing' : ''}`}
+            onClick={onToggle}
+            title={isPlaying ? 'Pause' : (isCurrent && paused ? 'Resume' : 'Play')}
+            aria-label={isPlaying ? 'Pause' : (isCurrent && paused ? 'Resume' : 'Play')}
+        >
+            {isFirstClick ? <div
+                style={{
+                    background: '#EF4444',
+                    color: '#fff',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                }}
+            >
+                🔈 Tap to start
+            </div> :
+            isPlaying ? '⏸ Stop' : '▶ Replay'}
+        </button>
+    );
 
     return (
         <div className="chat-container">
@@ -62,42 +64,58 @@ function History({ messages, onPlay, onPause, onResume, playingId, paused }) {
                 style={{height: chatBoxHeight}}
             >
                 {messages.map((msg, i) => {
-                    if (msg.role === "card") {
-                        return <MedicalProfileCard/>
-                    }
                     const isUser = msg.role === 'user';
+                    const canPlay = !isUser && !!msg.audioUrl;
                     const isCurrent = !isUser && playingId === msg.id;
                     const isPlaying = isCurrent && !paused;
-                    const canPlay = !isUser && !!msg.audioUrl;
-                    const classes = ['message', isUser ? 'user' : 'bot'];
-                    if (msg.type === 'error') classes.push('error');
 
                     const handleClick = () => {
                         if (!canPlay) return;
+                        if (isCurrent && isFirstClick) {
+                            onPlay(msg.audioUrl, msg.id);
+                        }
                         if (isCurrent) {
-                            // toggle pause/resume
                             if (isPlaying) onPause();
                             else onResume();
                         } else {
                             onPlay(msg.audioUrl, msg.id);
                         }
+
+                        setIsFirstClick(false);
                     };
+
+                    if (msg.role === "card") {
+                        return (
+                            <MedicalProfileCard
+                                key={i}
+                                controls={
+                                    canPlay ? (
+                                        <PlayAudioBtn
+                                            isPlaying={isPlaying}
+                                            isCurrent={isCurrent}
+                                            paused={paused}
+                                            onToggle={handleClick}
+                                        />
+                                    ) : null
+                                }
+                            />
+                        );
+                    }
+
+                    const classes = ['message', isUser ? 'user' : 'bot'];
+                    if (msg.type === 'error') classes.push('error');
 
                     return (
                         <div key={i} className={classes.join(' ')}>
                             <div className="bubble-row">
                                 <div className="bubble-text">{msg.text}</div>
-
                                 {canPlay && (
-                                    // Toggle button
-                                    <button
-                                        className={`play-btn ${isPlaying ? 'playing' : ''}`}
-                                        onClick={handleClick}
-                                        title={isPlaying ? 'Pause' : (isCurrent && paused ? 'Resume' : 'Play')}
-                                        aria-label={isPlaying ? 'Pause' : (isCurrent && paused ? 'Resume' : 'Play')}
-                                    >
-                                        {isPlaying ? '⏸ Stop' : '▶ Replay'}
-                                    </button>
+                                    <PlayAudioBtn
+                                        isPlaying={isPlaying}
+                                        isCurrent={isCurrent}
+                                        paused={paused}
+                                        onToggle={handleClick}
+                                    />
                                 )}
                             </div>
                         </div>

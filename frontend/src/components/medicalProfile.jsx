@@ -41,13 +41,13 @@ function Row({ icon, children }) {
     );
 }
 
-export function MedicalProfileCard({
-                                       name = "John Smith",
-                                       age = 42,
-                                       conditions = ["Type 2 Diabetes", "Hypertension"],
-                                       medications = ["Metformin", "Lisinopril"],
-                                       allergies = ["Penicillin"],
-                                   }) {
+export default function MedicalProfileCard({controls}) {
+    const name = "John Smith";
+    const age = 42;
+    const conditions = ["Type 2 Diabetes", "Hypertension"];
+    const medications = ["Metformin", "Lisinopril"];
+    const allergies = ["Penicillin"];
+
     return (
         <div style={styles.card}>
             <div style={styles.header}>
@@ -61,6 +61,8 @@ export function MedicalProfileCard({
                 <Row icon={<PillIcon />}>{medications.join(", ")}</Row>
                 <Row icon={<WarningIcon />}>{`Allergic to ${allergies.join(", ")}`}</Row>
             </div>
+
+            <div>{controls}</div>
         </div>
     );
 }
@@ -72,8 +74,8 @@ const styles = {
         borderBottomLeftRadius: 0,
         padding: 18,
         background: "linear-gradient(135deg, #1f3b9c 0%, #1845b0 60%, #1556cf 100%)",
-        boxShadow:
-            "0 10px 25px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06)",
+        // boxShadow:
+        //     "0 10px 25px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06)",
     },
     header: {
         gap: 12,
@@ -94,10 +96,3 @@ const styles = {
         color: "white",
     },
 };
-
-// Demo wrapper for the canvas preview. In your app, import and use <MedicalProfileCard /> directly.
-export default function Demo() {
-    return (
-        <MedicalProfileCard />
-    );
-}
