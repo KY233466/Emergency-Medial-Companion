@@ -17,8 +17,8 @@ load_dotenv()
 
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
-socketio = SocketIO(app, cors_allowed_origins=["http://localhost:3000"], cors_credentials=False)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}})
+socketio = SocketIO(app, cors_allowed_origins=["http://localhost:3000", "http://localhost:3001"], cors_credentials=False)
 app.config["SECRET_KEY"] = "secret!"
 
 # Initialize Cerebras client
@@ -414,15 +414,17 @@ def get_response(prompt):
     """
     Generate medical advice using Cerebras API
     """
-    system_prompt = """You are a professional medical assistant. Based on the provided patient information and medical knowledge base data, provide professional and accurate medical advice.
+    system_prompt = """You are a professional medical assistant. Use ONLY the facts provided.
 
-Requirements:
-1. Provide recommendations based on patient symptoms and knowledge base matching results
-2. If patient has allergy information, you MUST avoid recommending related medications
-3. Give appropriate urgency recommendations based on symptom severity (Critical/Moderate/Stable)
-4. Keep it concise and professional, 3-5 sentences
-5. If the situation is Critical, recommend immediate medical attention or emergency services
-6. Respond in the same language as the patient's input (Chinese or English)"""
+HARD OUTPUT RULES (must be followed exactly):
+1) Respond in 3 to 5 sentences, plain text (no bullets/numbering/markdown), ≤ 90 words total.
+   - Each sentence must be concise and bystander-safe.
+2) If a chronic condition, previous injury or surgery could be involved, mention it first and 
+    how it may complicate or cause the issue. Start with concrete actions a non‑medical bystander can perform right now.
+3) Base advice strictly on the provided patient data and knowledge base matches.
+4) Never recommend medications that appear in the patient's allergies.
+5) In the final sentence, include an urgency label like: Urgency: Critical/Moderate/Stable. (Skip this entirely if rule 1 applied.)
+"""
 
     completion = cerebras_client.chat.completions.create(
         model="llama-4-scout-17b-16e-instruct",

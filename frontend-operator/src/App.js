@@ -21,8 +21,7 @@ export default function App() {
   } = useAudioRecorder();
 
   const [messages, setMessages] = useState(
-      [{id: "card-1", role: "card", audioUrl: `${host}static/audio/20251004_202134.mp3`},
-        {role: "bot", text : "I am equipped with his medical history and the ability to search the web for medial related knowledge. Please hit record to ask your question."},
+      [{role: "bot", text : "I have access to the databases of nearby hospital to help you decide which hospital to send the patient to. Please hit record to talk about patient symptoms."},
       ]);
 
   // ONE shared audio element
@@ -174,7 +173,6 @@ export default function App() {
         justifyContent: "center",
       }}>
         <IconButton
-            disabled={isFirstClick}
             sx={(theme) => ({
               margin: "10px",
               padding: '10px',

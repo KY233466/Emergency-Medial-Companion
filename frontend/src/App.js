@@ -22,7 +22,7 @@ export default function App() {
 
   const [messages, setMessages] = useState(
       [{id: "card-1", role: "card", audioUrl: `${host}static/audio/20251004_202134.mp3`},
-        {role: "bot", text : "I am equipped with his medical history and the ability to search the web for medial related knowledge. Please hit record to ask your question."},
+        {role: "bot", text : "I am equipped with more of his detailed medical history and the ability to search the web for medial related knowledge. Please hit record to ask your question."},
       ]);
 
   // ONE shared audio element
