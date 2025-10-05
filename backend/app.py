@@ -17,8 +17,8 @@ load_dotenv()
 
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": r"http://(localhost|127\.0\.0\.1):(3000|3001)"}})
-socketio = SocketIO(app, cors_allowed_origins=r"http://(localhost|127\.0\.0\.1):(3000|3001)")
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+socketio = SocketIO(app, cors_allowed_origins=["http://localhost:3000"], cors_credentials=False)
 app.config["SECRET_KEY"] = "secret!"
 
 # Initialize Cerebras client
