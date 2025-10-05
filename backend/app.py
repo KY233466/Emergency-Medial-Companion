@@ -544,6 +544,8 @@ def get_operator_response(prompt, hospital_data):
 3. Any special precautions based on patient allergies and medical history
 
 Requirements:
+- Respond in 3 to 5 sentences, with the conclusion of which hospital to choose as the first sentence
+- NO markdown, ≤ 90 words total.
 - Prioritize hospitals with adequate blood plasma for the patient's condition
 - Consider medication availability, especially avoiding allergens
 - For Critical cases, recommend the nearest hospital with trauma capabilities

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import './history.css';
-import MedicalProfileCard from "./medicalProfile";
 
-function History({ messages, onPlay, onPause, onResume, playingId, paused, isFirstClick, setIsFirstClick }) {
+function History({ messages, onPlay, onPause, onResume, playingId, paused }) {
     const chatBoxRef = useRef(null);
     const audioRef = useRef(new Audio());
     const inputContainerRef = useRef(null);
@@ -40,18 +39,7 @@ function History({ messages, onPlay, onPause, onResume, playingId, paused, isFir
             title={isPlaying ? 'Pause' : (isCurrent && paused ? 'Resume' : 'Play')}
             aria-label={isPlaying ? 'Pause' : (isCurrent && paused ? 'Resume' : 'Play')}
         >
-            {isFirstClick ? <div
-                style={{
-                    background: '#EF4444',
-                    color: '#fff',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                }}
-            >
-                🔈 Tap to start
-            </div> :
-            isPlaying ? '⏸ Stop' : '▶ Replay'}
+            {isPlaying ? '⏸ Stop' : '▶ Replay'}
         </button>
     );
 
@@ -70,41 +58,18 @@ function History({ messages, onPlay, onPause, onResume, playingId, paused, isFir
 
                     const handleClick = () => {
                         if (!canPlay) return;
-                        if (isCurrent && isFirstClick) {
-                            onPlay(msg.audioUrl, msg.id);
-                        }
                         if (isCurrent) {
                             if (isPlaying) onPause();
                             else onResume();
                         } else {
                             onPlay(msg.audioUrl, msg.id);
                         }
-
-                        setIsFirstClick(false);
                     };
-
-                    if (msg.role === "card") {
-                        return (
-                            <MedicalProfileCard
-                                key={i}
-                                controls={
-                                    canPlay ? (
-                                        <PlayAudioBtn
-                                            isPlaying={isPlaying}
-                                            isCurrent={isCurrent}
-                                            paused={paused}
-                                            onToggle={handleClick}
-                                        />
-                                    ) : null
-                                }
-                            />
-                        );
-                    }
 
                     // Handle info messages with structured data
                     if (msg.role === 'info') {
                         return (
-                            <div key={i} className="message info">
+                            <div key={i} className="message bot info">
                                 <div className="info-card">
                                     {msg.type === 'patient' && (
                                         <div>

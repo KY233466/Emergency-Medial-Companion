@@ -21,14 +21,12 @@ export default function App() {
   } = useAudioRecorder();
 
   const [messages, setMessages] = useState(
-      [{role: "bot", text : "I have access to the databases of nearby hospital to help you decide which hospital to send the patient to. Please hit record to talk about patient symptoms."},
-      ]);
+      []);
 
   // ONE shared audio element
   const playerRef = useRef(new Audio());
   const [playingId, setPlayingId] = useState("card-1");
   const [paused, setPaused] = useState(true);
-  const [isFirstClick, setIsFirstClick] = useState(true);
 
   useEffect(() => {
     const a = playerRef.current;
@@ -188,10 +186,9 @@ export default function App() {
             paused={paused}
             onPlay={(url,id)=>playAudio(url,id)}
             onPause={pauseAudio}
-            onResume={resumeAudio}
-            isFirstClick={isFirstClick}
-            setIsFirstClick={setIsFirstClick}/>
+            onResume={resumeAudio}/>
         </div>
+      {/*
       <div style={{
         width: '100%',
         border: '1px solid #EFF0F2',
@@ -218,7 +215,7 @@ export default function App() {
         >
           {isRecording ? <StopIcon sx={{ fontSize: '5rem' }} /> : <MicIcon sx={{ fontSize: '5rem' }} />}
         </IconButton>
-      </div>
+      </div> */}
     </div>
   );
 }
