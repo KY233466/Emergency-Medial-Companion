@@ -11,6 +11,7 @@ import json
 from datetime import datetime
 import re
 import uuid
+import sqlite3
 
 load_dotenv()
 
@@ -32,7 +33,7 @@ DEEPGRAM_URL_STT = "https://api.deepgram.com/v1/listen"
 DEEPGRAM_URL_TTS = "https://api.deepgram.com/v1/speak"
 
 # Load medical knowledge base
-with open("medical_knowledge_base (1).json", "r", encoding="utf-8") as f:
+with open("medical_knowledge_base_v2.json", "r", encoding="utf-8") as f:
     medical_kb = json.load(f)
 
 @app.get("/healthz")
@@ -42,6 +43,40 @@ def healthz():
 @app.route("/audio/<filename>")
 def serve_audio(filename):
     return send_from_directory("static/audio", filename)
+
+def search_patient_database(name, age=None):
+    """
+    Search patient database for complete medical history and allergies
+    """
+    try:
+        conn = sqlite3.connect('patients.db')
+        cursor = conn.cursor()
+
+        if age:
+            cursor.execute(
+                "SELECT name, age, medical_history, allergies FROM patients WHERE name = ? AND age = ?",
+                (name, age)
+            )
+        else:
+            cursor.execute(
+                "SELECT name, age, medical_history, allergies FROM patients WHERE name = ?",
+                (name,)
+            )
+
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            return {
+                "name": result[0],
+                "age": result[1],
+                "medical_history": result[2],
+                "allergies": result[3]
+            }
+        return None
+    except Exception as e:
+        print(f"Database search error: {str(e)}")
+        return None
 
 def extract_patient_info(transcript):
     """
@@ -57,15 +92,16 @@ def extract_patient_info(transcript):
         "symptoms": []
     }
 
-    # 提取姓名: 我叫XXX / My name is XXX / I am XXX
+    # 提取姓名: 我叫XXX / My name is XXX / I am XXX / 患者名叫XXX
     name_patterns = [
+        r'患者名叫([A-Za-z\u4e00-\u9fa5\s]+?)(?:[,，。\.]|$)',
         r'我叫([A-Za-z\u4e00-\u9fa5]+)',
-        r'(?:my name is|I am|I\'m)\s+([A-Za-z]+)',
+        r'(?:my name is|I am|I\'m)\s+([A-Za-z\s]+?)(?:[,\.]|$)',
     ]
     for pattern in name_patterns:
         name_match = re.search(pattern, transcript, re.IGNORECASE)
         if name_match:
-            info["name"] = name_match.group(1)
+            info["name"] = name_match.group(1).strip()
             break
 
     # 提取年龄: XX岁 / XX years old / I am XX
@@ -82,6 +118,7 @@ def extract_patient_info(transcript):
 
     # 提取受伤原因/症状: 中文
     injury_patterns_cn = [
+        r'发生了?(车祸|交通事故)',
         r'从(.+?)摔下来',
         r'被(.+?)(撞|打|咬)',
         r'(摔|跌|撞)(?:倒|伤)',
@@ -97,6 +134,7 @@ def extract_patient_info(transcript):
     # 提取受伤原因/症状: 英文
     if not info["injury"]:
         injury_patterns_en = [
+            r'(car accident|traffic accident|motor vehicle accident)',
             r'(fell|fainted|collapsed|injured|hit|cut|burned|broke)',
             r'because of\s+(.+?)(?:\.|,|$)',
             r'(high blood pressure|low blood pressure|diabetes|heart attack|stroke)',
@@ -185,6 +223,13 @@ def search_medical_knowledge(patient_info):
 
     # 症状关键词映射（中英文到知识库症状）
     symptom_mapping = {
+        # 车祸相关
+        "车祸": "car accident",
+        "交通事故": "car accident",
+        "car accident": "car accident",
+        "traffic accident": "car accident",
+        "motor vehicle accident": "car accident",
+
         # 中文映射
         "脚踝": "sprained ankle",
         "脚腕": "sprained ankle",
@@ -286,6 +331,20 @@ def handle_audio(data):
             # 提取患者信息
             patient_info = extract_patient_info(transcript)
             print(f"提取的患者信息: {patient_info}")
+
+            # 搜索患者数据库
+            db_patient = None
+            if patient_info["name"]:
+                db_patient = search_patient_database(patient_info["name"], patient_info.get("age"))
+                if db_patient:
+                    print(f"数据库找到患者: {db_patient['name']}")
+                    emit("database_patient_found", {**db_patient, "req_id": req_id}, to=sid)
+                    # 如果数据库中有更完整的信息，更新patient_info
+                    if not patient_info["age"] and db_patient["age"]:
+                        patient_info["age"] = db_patient["age"]
+                    if not patient_info["allergies"] and db_patient["allergies"]:
+                        patient_info["allergies"] = db_patient["allergies"]
+
             emit("patient_info", {**patient_info, "req_id": req_id}, to=sid)
 
             # 搜索医疗知识库
@@ -308,6 +367,12 @@ def handle_audio(data):
                 enhanced_prompt += f"Pain Level: {patient_info['pain_level']}/10\n"
             if patient_info["allergies"]:
                 enhanced_prompt += f"Allergies: {patient_info['allergies']}\n"
+
+            # 添加数据库中的完整病史信息
+            if db_patient:
+                enhanced_prompt += f"\nPatient Medical History from Database:\n"
+                enhanced_prompt += f"- Complete Medical History: {db_patient['medical_history']}\n"
+                enhanced_prompt += f"- Known Allergies: {db_patient['allergies']}\n"
 
             if knowledge_results:
                 enhanced_prompt += f"\nMedical Knowledge Base Match Results:\n"

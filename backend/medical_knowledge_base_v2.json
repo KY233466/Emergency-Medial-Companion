@@ -58,5 +58,35 @@
         "severity": "Moderate",
         "conditions": ["anaphylaxis", "bee sting allergy", "allergic dermatitis"],
         "treatment": "Epinephrine, antihistamines, corticosteroids"
+    },
+    {
+        "symptom": "car accident",
+        "severity": "Critical",
+        "conditions": ["multiple trauma", "internal injuries", "spinal cord damage"],
+        "treatment": "Immobilization, rapid transport, trauma center evaluation"
+    },
+    {
+        "symptom": "head injury",
+        "severity": "Critical",
+        "conditions": ["concussion", "skull fracture", "traumatic brain injury"],
+        "treatment": "CT scan, monitoring for intracranial pressure, neurosurgery if needed"
+    },
+    {
+        "symptom": "internal bleeding",
+        "severity": "Critical",
+        "conditions": ["hemorrhagic shock", "organ rupture"],
+        "treatment": "Fluid resuscitation, blood transfusion, surgical intervention"
+    },
+    {
+        "symptom": "concussion",
+        "severity": "Moderate",
+        "conditions": ["mild traumatic brain injury"],
+        "treatment": "Rest, symptom management, follow-up CT if symptoms worsen"
+    },
+    {
+        "symptom": "neck injury",
+        "severity": "Critical",
+        "conditions": ["cervical spine fracture", "whiplash"],
+        "treatment": "Cervical collar immobilization, imaging (X-ray/MRI), surgical stabilization if unstable"
     }
 ]
