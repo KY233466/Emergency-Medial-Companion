@@ -20,7 +20,47 @@ export default function App() {
     isRecording
   } = useAudioRecorder();
 
-  const [messages, setMessages] = useState([{"role": "card"}, {"role": "bot", "text" : "Hi, I am a medical emergency companion. I am equipped with the medical of this person and ability to search the web for medial related knowledge. Please hit record to ask your question."}]);
+  const [messages, setMessages] = useState(
+      [{"role": "card"},
+        {"role": "bot", "text" : "I am equipped with his medical history and the ability to search the web for medial related knowledge. Please hit record to ask your question."},
+      ]);
+  const pendingPlayRef = useRef(null);        // stores { url, id } to play after user gesture
+  const [showTapToPlay, setShowTapToPlay] = useState(false); // small prompt when autoplay is blocked
+
+  useEffect(() => {
+    const INTRO_ID = 'intro-audio';
+    const INTRO_URL = `${host}static/audio/20251004_202134.mp3`; // served by Flask
+    // Don't call play() yet—queue it to avoid NotAllowedError
+    pendingPlayRef.current = { url: INTRO_URL, id: INTRO_ID };
+    setShowTapToPlay(true);
+  }, []);
+
+  // Trigger any pending audio playback (used by first tap/click)
+  const enableAudioNow = () => {
+    if (pendingPlayRef.current) {
+      const { url, id } = pendingPlayRef.current;
+      pendingPlayRef.current = null;
+      playAudio(url, id);
+    }
+    setShowTapToPlay(false);
+  };
+
+  useEffect(() => {
+    const once = () => {
+      enableAudioNow();
+      window.removeEventListener('pointerdown', once);
+      window.removeEventListener('touchstart', once);
+      window.removeEventListener('keydown', once);
+    };
+    window.addEventListener('pointerdown', once, { once: true });
+    window.addEventListener('touchstart', once, { once: true });
+    window.addEventListener('keydown', once, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', once);
+      window.removeEventListener('touchstart', once);
+      window.removeEventListener('keydown', once);
+    };
+  }, []);
 
   // ONE shared audio element
   const playerRef = useRef(new Audio());
@@ -43,16 +83,25 @@ export default function App() {
     };
   }, []);
 
-  const playAudio = (url, id = null) => {
+  const playAudio = async (url, id = null) => {
     const a = playerRef.current;
     try {
       a.pause();
       a.src = url;
       a.currentTime = 0;
-      a.play()
-          .then(() => { if (id) setPlayingId(id); setPaused(false); })
-          .catch(err => console.warn('Autoplay blocked or failed:', err));
-    } catch (e) { console.error(e); }
+      await a.play();
+      if (id) setPlayingId(id);
+      setPaused(false);
+    } catch (err) {
+      if (err && (err.name === 'NotAllowedError' || err.code === 0)) {
+        // Queue for replay after first user interaction
+        pendingPlayRef.current = { url, id };
+        setShowTapToPlay(true);
+        console.warn('Autoplay blocked; waiting for user gesture.');
+      } else {
+        console.warn('Play failed:', err);
+      }
+    }
   };
 
   const pauseAudio = () => {
@@ -140,6 +189,27 @@ export default function App() {
         overflow: 'hidden',
       }}
     >
+      {showTapToPlay && (
+        <div
+          onClick={enableAudioNow}
+          style={{
+            position: 'fixed',
+            bottom: 76,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            background: '#1f2937',
+            color: '#fff',
+            padding: '8px 12px',
+            borderRadius: 8,
+            boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
+            cursor: 'pointer',
+            userSelect: 'none'
+          }}
+        >
+          🔈 Tap to enable audio
+        </div>
+      )}
       <div style={{flex: "1 1 auto",
         minHeight: 0,
         overflow: "hidden"}}>

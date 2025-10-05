@@ -414,6 +414,36 @@ def synthesize_audio(text, audio_filename):
         return None
 
 
+@socketio.on("tts_text")
+def handle_tts_text(payload):
+    """
+    Synthesize arbitrary text to speech using the same Deepgram voice as normal responses.
+    Expects: {"text": "...", "req_id": "optional-id"}
+    Emits:
+      - "audio_url": {"url": "...", "req_id": "..."} on success
+      - "tts_error": {"message": "...", "req_id": "..."} on failure
+    """
+    try:
+        sid = request.sid
+        text = (payload or {}).get("text", "")
+        req_id = (payload or {}).get("req_id") or str(uuid.uuid4())
+
+        if not text or not text.strip():
+            emit("tts_error", {"req_id": req_id, "message": "No text provided for TTS."}, to=sid)
+            return
+
+        # Use the same TTS voice/model as in synthesize_audio (aura-asteria-en)
+        audio_filename = datetime.now().strftime("%Y%m%d_%H%M%S") + ".mp3"
+        audio_url = synthesize_audio(text, audio_filename)
+
+        if audio_url:
+            emit("audio_url", {"url": audio_url, "req_id": req_id}, to=sid)
+        else:
+            emit("tts_error", {"req_id": req_id, "message": "TTS synthesis failed."}, to=sid)
+    except Exception as e:
+        emit("tts_error", {"req_id": (payload or {}).get("req_id"), "message": str(e)}, to=request.sid)
+
+
 @socketio.on("connect")
 def test_connect():
     print("Client connected.")

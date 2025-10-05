@@ -30,8 +30,8 @@ function Row({ icon, children }) {
         <div style={{
             display: "flex",
             alignItems: "center",
-            gap: 12,
-            padding: "6px 0",
+            gap: 8,
+            padding: "2px 0",
         }}>
             <div aria-hidden style={{ width: 22, height: 22, display: "grid", placeItems: "center" }}>
                 {icon}
@@ -51,16 +51,12 @@ export function MedicalProfileCard({
     return (
         <div style={styles.card}>
             <div style={styles.header}>
-                <div style={styles.avatar} aria-hidden>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="8" r="4" fill="#dbeafe" />
-                        <path d="M4 20c.9-3.5 4.5-6 8-6s7.1 2.5 8 6" fill="#bfdbfe" />
-                    </svg>
-                </div>
+                <div style={styles.subtitle}>Hi,</div>
+                <div style={styles.subtitle}>I am an emergency companion. This is</div>
                 <div style={styles.subtitle}>{`${name}, Age ${age}`}</div>
             </div>
 
-            <div style={{ marginTop: 8 }}>
+            <div style={{marginTop: 2}}>
                 <Row icon={<HeartIcon />}>{conditions.join(", ")}</Row>
                 <Row icon={<PillIcon />}>{medications.join(", ")}</Row>
                 <Row icon={<WarningIcon />}>{`Allergic to ${allergies.join(", ")}`}</Row>
@@ -73,13 +69,13 @@ const styles = {
     card: {
         color: "#fff",
         borderRadius: 16,
+        borderBottomLeftRadius: 0,
         padding: 18,
         background: "linear-gradient(135deg, #1f3b9c 0%, #1845b0 60%, #1556cf 100%)",
         boxShadow:
             "0 10px 25px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06)",
     },
     header: {
-        display: "flex",
         gap: 12,
         alignItems: "center",
     },
@@ -93,8 +89,9 @@ const styles = {
     },
     subtitle: {
         marginTop: 2,
-        fontSize: 14,
-        color: "#c7d2fe",
+        fontSize: 15,
+        fontWeight: 700,
+        color: "white",
     },
 };
 
